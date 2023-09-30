@@ -80,7 +80,7 @@ actor_net = nn.Sequential(
 
     # nn.LazyLinear(env.action_spec.shape[-1], device=device),
     # NormalParamExtractor(),
-    nn.Softmax()
+    nn.Softmax(dim=2)
     # torch.distributions.Categorical()
 )
 print("action spec shape : {}".format(env.action_spec))
@@ -89,23 +89,26 @@ policy_module = TensorDictModule(
     actor_net, 
     in_keys=["observation"],
     out_keys=["probs"],
-    distribution_class=torch.distributions.Categorical
-)
-from tensordict import TensorDict
-
-tensordict = TensorDict(
-    {"observation": torch.randn(1, 4)},
-    [1],
-    device=device
 )
 
-# アクターネットワークの出力を取得
-probs = policy_module(tensordict)["probs"]  # tensor([[0.5139, 0.4861]])
 
-print(policy_module(tensordict)["probs"])
-distribution = torch.distributions.Categorical(probs)
-action = distribution.sample()
-print(action)
+# from tensordict import TensorDict
+
+# tensordict = TensorDict(
+#     {"observation": torch.randn(1, 4)},
+#     [1],
+#     device=device
+# )
+
+# # アクターネットワークの出力を取得
+# probs = policy_module(tensordict)["probs"]  # tensor([[0.5139, 0.4861]])
+
+# print(policy_module(tensordict)["probs"])
+# distribution = torch.distributions.Categorical(probs)
+# action = distribution.sample()
+# print(action)
+
+
 # policy_module = TensorDictModule(
 #     module=policy_module,
 #     # spec=env.action_spec,
@@ -118,14 +121,14 @@ print(action)
 #     return_log_prob=True,
 #     # we'll need the log-prob for the numerator of the importance weights
 # )
-# policy_module = ProbabilisticActor(
-#     module=policy_module,
-#     spec=env.action_spec,
-#     in_keys=["loc", "scale"],
-#     distribution_class=torch.distributions.Categorical,
-#     return_log_prob=True,
-#     # we'll need the log-prob for the numerator of the importance weights
-# )
+policy_module = ProbabilisticActor(
+    module=policy_module,
+    spec=env.action_spec,
+    in_keys=["probs"],
+    distribution_class=torch.distributions.Categorical,
+    return_log_prob=True,
+    # we'll need the log-prob for the numerator of the importance weights
+)
 value_net = nn.Sequential(
     nn.LazyLinear(num_cells, device=device),
     nn.Tanh(),
